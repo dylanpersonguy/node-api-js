@@ -1,4 +1,4 @@
-import { TLong } from '../../interface';
+import { type TLong } from '../../interface';
 import request from '../../tools/request';
 
 /**
@@ -10,9 +10,9 @@ import request from '../../tools/request';
 export function fetchGeneratingBalance(
   base: string,
   address: string,
-  _options: RequestInit = Object.create(null),
+  options: RequestInit = Object.create(null),
 ): Promise<IGeneratingBalance<TLong>> {
-  return request({ base, url: `/consensus/generatingbalance/${address}` });
+  return request({ base, url: `/consensus/generatingbalance/${address}`, options });
 }
 
 /**

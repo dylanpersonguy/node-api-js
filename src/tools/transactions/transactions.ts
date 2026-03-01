@@ -1,37 +1,37 @@
-import { IWithStateChanges, TPayment, TStateChanges } from '../../api-node/debug';
+import { type IWithStateChanges, type TPayment, type TStateChanges } from '../../api-node/debug';
 import { BigNumber } from '@decentralchain/bignumber';
 import {
-  AssetDecimals,
-  DataTransactionEntry,
+  type AssetDecimals,
+  type DataTransactionEntry,
   // @ts-expect-error InvokeExpressionTransaction may not be available in all ts-types versions
-  InvokeExpressionTransaction,
-  EthereumTransaction,
+  type InvokeExpressionTransaction,
+  type EthereumTransaction,
   TRANSACTION_TYPE,
-  WithApiMixin,
+  type WithApiMixin,
 } from '@decentralchain/ts-types/';
-import { Long } from '@decentralchain/ts-types/';
+import { type Long } from '@decentralchain/ts-types/';
 import {
-  AliasTransaction,
-  BurnTransaction,
-  CancelLeaseTransaction,
-  DataTransaction,
-  ExchangeTransaction,
-  GenesisTransaction,
-  InvokeScriptTransaction,
-  IssueTransaction,
-  LeaseTransaction,
-  MassTransferTransaction,
-  PaymentTransaction,
-  ReissueTransaction,
-  SetAssetScriptTransaction,
-  SetScriptTransaction,
-  SponsorshipTransaction,
-  TransferTransaction,
-  UpdateAssetInfoTransaction,
+  type AliasTransaction,
+  type BurnTransaction,
+  type CancelLeaseTransaction,
+  type DataTransaction,
+  type ExchangeTransaction,
+  type GenesisTransaction,
+  type InvokeScriptTransaction,
+  type IssueTransaction,
+  type LeaseTransaction,
+  type MassTransferTransaction,
+  type PaymentTransaction,
+  type ReissueTransaction,
+  type SetAssetScriptTransaction,
+  type SetScriptTransaction,
+  type SponsorshipTransaction,
+  type TransferTransaction,
+  type UpdateAssetInfoTransaction,
 } from '@decentralchain/ts-types/';
-import { IWithApplicationStatus, TLong } from '../../interface';
+import { type IWithApplicationStatus, type TLong } from '../../interface';
 
-export type TStateUpdate = {
+interface TStateUpdate {
   data: (DataTransactionEntry & { address: string })[];
   transfers: {
     address: string;
@@ -73,9 +73,11 @@ export type TStateUpdate = {
     amount: TLong;
   }[];
   leaseCancels: { leaseId: string; address: string }[];
-};
+}
 
-export type TWithStateUpdate = { stateUpdate: TStateUpdate };
+export interface TWithStateUpdate {
+  stateUpdate: TStateUpdate;
+}
 export type TWithState = IWithStateChanges & TWithStateUpdate;
 
 export type TTransaction<LONG = Long> =
@@ -103,24 +105,9 @@ export function addStateUpdateField(
   transaction: TTransaction & WithApiMixin & IWithApplicationStatus,
 ): TTransaction & WithApiMixin & IWithApplicationStatus {
   if (
-    transaction.type === TRANSACTION_TYPE.INVOKE_SCRIPT ||
-    // @ts-expect-error INVOKE_EXPRESSION may not be available in all ts-types versions
-    (transaction.type === TRANSACTION_TYPE.INVOKE_EXPRESSION &&
-      transaction.stateChanges.invokes &&
-      transaction.stateChanges.invokes.length)
-  ) {
-    const _payments = (transaction as any).payment
-      ? (transaction as any).payment.map((p: TPayment) => ({
-          assetId: p.assetId,
-          amount: p.amount,
-        }))
-      : [];
-  }
-  if (
     transaction.type === TRANSACTION_TYPE.ETHEREUM &&
     transaction.payload.type === 'invocation' &&
-    transaction.payload.stateChanges.invokes &&
-    transaction.payload.stateChanges.invokes.length
+    transaction.payload.stateChanges.invokes?.length
   ) {
     const payments = transaction.payload.payment
       ? transaction.payload.payment.map((p: TPayment) => ({
@@ -136,7 +123,7 @@ export function addStateUpdateField(
   } else return transaction;
 }
 
-export function makeStateUpdate(
+function makeStateUpdate(
   stateChanges: TStateChanges,
   payment: TPayment[],
   dApp: string | undefined,
@@ -175,72 +162,70 @@ export function makeStateUpdate(
             const index = payments.findIndex(
               (z) => z.payment.assetId === y.assetId && z.dApp === x.dApp && sender === x.dApp,
             );
-            index !== -1
-              ? (payments[index].payment.amount = new BigNumber(payments[index].payment.amount)
-                  .add(y.amount)
-                  .toNumber())
-              : payments.push({
-                  payment: y,
-                  sender: sender,
-                  dApp: x.dApp,
-                });
+            if (index !== -1) {
+              const entry = payments[index]!;
+              entry.payment.amount = new BigNumber(entry.payment.amount).add(y.amount).toFixed();
+            } else {
+              payments.push({
+                payment: y,
+                sender: sender,
+                dApp: x.dApp,
+              });
+            }
           });
         //data
         x.stateChanges.data.forEach((y) => {
           const index = stateUpdate.data.findIndex((z) => z.key === y.key && z.address === x.dApp);
-          index !== -1
-            ? (stateUpdate.data[index] = { ...y, address: x.dApp })
-            : stateUpdate.data.push({
-                ...y,
-                address: x.dApp,
-              });
+          if (index !== -1) {
+            stateUpdate.data[index] = { ...y, address: x.dApp };
+          } else {
+            stateUpdate.data.push({ ...y, address: x.dApp });
+          }
         });
         //burns
         x.stateChanges.burns.forEach((y) => {
           const index = stateUpdate.burns.findIndex((z) => z.assetId === y.assetId);
-          index !== -1
-            ? (stateUpdate.burns[index].quantity += y.quantity)
-            : stateUpdate.burns.push({
-                ...y,
-                address: x.dApp,
-              });
+          if (index !== -1) {
+            const entry = stateUpdate.burns[index]!;
+            entry.quantity += y.quantity;
+          } else {
+            stateUpdate.burns.push({ ...y, address: x.dApp });
+          }
         });
         //issues
         x.stateChanges.issues.forEach((y) => stateUpdate.issues.push({ ...y, address: x.dApp }));
         //reissues
         x.stateChanges.reissues.forEach((y) => {
           const index = stateUpdate.reissues.findIndex((z) => z.assetId === y.assetId);
-          index !== -1
-            ? (stateUpdate.reissues[index].quantity += y.quantity)
-            : stateUpdate.reissues.push({
-                ...y,
-                address: x.dApp,
-              });
+          if (index !== -1) {
+            const entry = stateUpdate.reissues[index]!;
+            entry.quantity += y.quantity;
+          } else {
+            stateUpdate.reissues.push({ ...y, address: x.dApp });
+          }
         });
         //transfers
         x.stateChanges.transfers.forEach((y) => {
           const index = stateUpdate.transfers.findIndex(
             (z) => z.asset === y.asset && z.address === y.address && x.dApp === z.sender,
           );
-          index !== -1
-            ? (stateUpdate.transfers[index].amount = new BigNumber(
-                stateUpdate.transfers[index].amount,
-              )
-                .add(y.amount)
-                .toNumber())
-            : stateUpdate.transfers.push({
-                ...y,
-                sender: x.dApp,
-              });
+          if (index !== -1) {
+            const entry = stateUpdate.transfers[index]!;
+            entry.amount = new BigNumber(entry.amount).add(y.amount).toFixed();
+          } else {
+            stateUpdate.transfers.push({ ...y, sender: x.dApp });
+          }
         });
         //sponsorFees
         x.stateChanges.sponsorFees.forEach((y) => {
           const index = stateUpdate.sponsorFees.findIndex(
             (z) => z.assetId === y.assetId && z.address === x.dApp,
           );
-          index !== -1
-            ? (stateUpdate.sponsorFees[index] = { ...y, address: x.dApp })
-            : stateUpdate.sponsorFees.push({ ...y, address: x.dApp });
+          if (index !== -1) {
+            stateUpdate.sponsorFees[index] = { ...y, address: x.dApp };
+          } else {
+            stateUpdate.sponsorFees.push({ ...y, address: x.dApp });
+          }
         });
         //lease and leaseCancels
         x.stateChanges.leases.forEach((y) => stateUpdate.leases.push({ ...y, sender: x.dApp }));
