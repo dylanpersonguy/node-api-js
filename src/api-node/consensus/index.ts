@@ -1,5 +1,6 @@
 import { type TLong } from '../../interface';
 import request from '../../tools/request';
+import { pathSegment } from '../../tools/utils';
 
 /**
  * GET /consensus/generatingbalance/{address}
@@ -10,9 +11,9 @@ import request from '../../tools/request';
 export function fetchGeneratingBalance(
   base: string,
   address: string,
-  options: RequestInit = Object.create(null),
+  options: RequestInit = {},
 ): Promise<IGeneratingBalance<TLong>> {
-  return request({ base, url: `/consensus/generatingbalance/${address}`, options });
+  return request({ base, url: `/consensus/generatingbalance/${pathSegment(address)}`, options });
 }
 
 /**
