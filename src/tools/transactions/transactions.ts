@@ -112,7 +112,8 @@ export function addStateUpdateField(
     return transaction;
   }
 
-  const payments = payload.payment?.map((p: TPayment) => ({
+  const payments =
+    payload.payment?.map((p: TPayment) => ({
       assetId: p.assetId,
       amount: p.amount,
     })) ?? [];
@@ -132,10 +133,8 @@ function makeStateUpdate(
 ): TStateUpdate {
   const dApp = dAppParam ?? '';
   const payments = payment.map((p) => ({ payment: p, dApp, sender }));
-  const addField = <T extends object, K extends string>(
-    array: T[],
-    fieldName: K,
-  ) => array.map((item) => ({ ...item, [fieldName]: dApp }) as T & Record<K, string>);
+  const addField = <T extends object, K extends string>(array: T[], fieldName: K) =>
+    array.map((item) => ({ ...item, [fieldName]: dApp }) as T & Record<K, string>);
   const transfers = addField(stateChanges.transfers, 'sender');
   const leases = addField(stateChanges.leases, 'sender');
   const issues = addField(stateChanges.issues, 'address');
@@ -163,13 +162,10 @@ function makeStateUpdate(
       //payments
       x.payment.forEach((y) => {
         const existing = payments.find(
-          (z) =>
-            z.payment.assetId === y.assetId && z.dApp === x.dApp && senderAddr === x.dApp,
+          (z) => z.payment.assetId === y.assetId && z.dApp === x.dApp && senderAddr === x.dApp,
         );
         if (existing) {
-          existing.payment.amount = new BigNumber(existing.payment.amount)
-            .add(y.amount)
-            .toFixed();
+          existing.payment.amount = new BigNumber(existing.payment.amount).add(y.amount).toFixed();
         } else {
           payments.push({
             payment: y,
@@ -180,9 +176,7 @@ function makeStateUpdate(
       });
       //data
       x.stateChanges.data.forEach((y) => {
-        const idx = stateUpdate.data.findIndex(
-          (z) => z.key === y.key && z.address === x.dApp,
-        );
+        const idx = stateUpdate.data.findIndex((z) => z.key === y.key && z.address === x.dApp);
         if (idx >= 0) {
           stateUpdate.data.splice(idx, 1, { ...y, address: x.dApp });
         } else {
